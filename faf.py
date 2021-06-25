@@ -15,14 +15,48 @@ class Schedule:
     def __init__(self, data, storage):
         self.schedule = [night.strip() for night in data if night.strip()]
         self.storage = storage
+        self.qc = QuantumCircuit(storage.size, storage.outsize)
 
     def circuit(self):
         """Create corresponding circuit."""
-        pass
+        # Init bits
+        for i, b in enumerate(self.storage.locations):
+            if '(' in self.storage.raw[i]:
+                self.qc.initialize([0, 1] if b else [1, 0], i)
+            elif b:
+                self.qc.x(i)
+
+        # Add CSWAPs
+        for i, shift in enumerate(self.schedule):
+            locs = [int(v) - 1 for v in shift.split(',')]
+            print(f'Night {i}: {locs}')
+            self.qc.cswap(locs[1], locs[0], locs[2])
+
+        # Add Measurements
+        q = [i for i, v in enumerate(storage.raw) if '!' in v]
+        self.qc.measure(q[::-1], list(range(storage.outsize)))
+        print(self.qc)
 
     def describe(self):
         """Describe the shifts as they unfold."""
         pass
+
+    def draw(self):
+        self.qc.draw(output='mpl')
+        plt.show()
+
+    def simulate(self):
+        # Select optional animatronics:
+        self.storage.select()
+        self.circuit()
+
+        backend = BasicAer.get_backend('qasm_simulator')
+        job = execute(self.qc, backend, shots=10)
+        results = job.result().get_counts(self.qc)
+        print('RESULTS:', results)
+        r = list(results.keys())[0]
+        print('As Int:', int(r, 2))
+        print('As Chr:', chr(int(r, 2)))
 
 
 class Storage:
@@ -33,6 +67,10 @@ class Storage:
         self.outsize = data.count('!')
 
     def select(self):
+        """
+           Select optional animatronics.
+           Prompts for user input.
+        """
         for i, a in enumerate(self.raw):
             if '(' in a:
                 ans = input(f'Is {a} present? (Y/N) ')
@@ -52,39 +90,7 @@ if __name__ == '__main__':
     print('Animatronics:', storage.raw)
     print('Schedule:', schedule.schedule)
 
-    # Select optional animatronics:
-    storage.select()
-    print('Animatronics:', storage.locations)
-
-    qc = QuantumCircuit(storage.size, storage.outsize)
-    # Init bits
-    for i, b in enumerate(storage.locations):
-        if '(' in storage.raw[i]:
-            qc.initialize([0, 1] if b else [1, 0], i)
-        elif b:
-            qc.x(i)
-
-    # Add CSWAPs
-    for i, shift in enumerate(schedule.schedule):
-        locs = [int(v) - 1 for v in shift.split(',')]
-        print(f'Night {i}: {locs}')
-        qc.cswap(locs[1], locs[0], locs[2])
-
-    # Add Measurements
-    q = [i for i, v in enumerate(storage.raw) if '!' in v]
-    qc.measure(q[::-1], list(range(storage.outsize)))
-
-    print(qc)
-    #qc.measure_all()
-
-    backend = BasicAer.get_backend('qasm_simulator')
-    job = execute(qc, backend, shots=10)
-    results = job.result().get_counts(qc)
-    print('RESULTS:', results)
-    r = list(results.keys())[0]
-    print('As Int:', int(r, 2))
-    print('As Chr:', chr(int(r, 2)))
-
-    qc.draw(output='mpl')
-    plt.show()
+    schedule.simulate()
+    print('Input Animatronics:', schedule.storage.locations)
+    schedule.draw()
 
