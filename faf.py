@@ -11,6 +11,20 @@ https://esolangs.org/wiki/Finites_at_Fredy%27s
 """
 
 
+class Schedule:
+    def __init__(self, data, storage):
+        self.schedule = [night.strip() for night in data if night.strip()]
+        self.storage = storage
+
+    def circuit(self):
+        """Create corresponding circuit."""
+        pass
+
+    def describe(self):
+        """Describe the shifts as they unfold."""
+        pass
+
+
 class Storage:
     def __init__(self, data):
         self.raw = [v.strip() for v in data.split(',')]
@@ -33,10 +47,10 @@ if __name__ == '__main__':
 
     with open(args.file, 'r') as f:
         storage = Storage(f.readline()) 
-        schedule = [line.strip() for line in f.readlines()] 
-   
+        schedule = Schedule(f.readlines(), storage)
+
     print('Animatronics:', storage.raw)
-    print('Schedule:', schedule)
+    print('Schedule:', schedule.schedule)
 
     # Select optional animatronics:
     storage.select()
@@ -51,13 +65,12 @@ if __name__ == '__main__':
             qc.x(i)
 
     # Add CSWAPs
-    for i, shift in enumerate(schedule):
+    for i, shift in enumerate(schedule.schedule):
         locs = [int(v) - 1 for v in shift.split(',')]
         print(f'Night {i}: {locs}')
         qc.cswap(locs[1], locs[0], locs[2])
 
     # Add Measurements
-
     q = [i for i, v in enumerate(storage.raw) if '!' in v]
     qc.measure(q[::-1], list(range(storage.outsize)))
 
@@ -66,8 +79,11 @@ if __name__ == '__main__':
 
     backend = BasicAer.get_backend('qasm_simulator')
     job = execute(qc, backend, shots=10)
-    print('RESULTS:', job.result().get_counts(qc))
-    
+    results = job.result().get_counts(qc)
+    print('RESULTS:', results)
+    r = list(results.keys())[0]
+    print('As Int:', int(r, 2))
+    print('As Chr:', chr(int(r, 2)))
 
     qc.draw(output='mpl')
     plt.show()
