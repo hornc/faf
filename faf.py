@@ -19,6 +19,8 @@ class Schedule:
 
     def circuit(self):
         """Create corresponding circuit."""
+        # Select optional animatronics:
+        self.storage.select()
         # Init bits
         for i, b in enumerate(self.storage.locations):
             if '(' in self.storage.raw[i]:
@@ -46,8 +48,6 @@ class Schedule:
         plt.show()
 
     def simulate(self):
-        # Select optional animatronics:
-        self.storage.select()
         self.circuit()
 
         backend = BasicAer.get_backend('qasm_simulator')
