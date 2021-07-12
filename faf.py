@@ -5,10 +5,12 @@ from qiskit import QuantumCircuit, execute
 from qiskit import BasicAer
 import matplotlib.pyplot as plt
 
-DESC = """
-Finites at Fredy's esolang interpreter.
+version = '0.1α'
+ABOUT = f"""
+Finites at Fredy's esolang interpreter. (v{version})
 https://esolangs.org/wiki/Finites_at_Fredy%27s
 """
+DEBUG = False
 
 
 class Schedule:
@@ -19,8 +21,6 @@ class Schedule:
 
     def circuit(self):
         """Create corresponding circuit."""
-        # Select optional animatronics:
-        self.storage.select()
         # Init bits
         for i, b in enumerate(self.storage.locations):
             if '(' in self.storage.raw[i]:
@@ -41,11 +41,24 @@ class Schedule:
 
     def describe(self):
         """Describe the shifts as they unfold."""
-        pass
+        emp = 1
+        print('\n\tOn Duty\tWest Coor.\tControl Room\tEast Coor.')
+        for i, shift in enumerate(self.schedule):
+            t = [i + 1] + [int(v) for v in shift.split(',')]
+            t += [self.storage.get(i) for i in t[1:]]
+            t += [emp]
+            print('Night {0}:\tEmployee #{7}\tLocation {1} ({4})\tLocation {2} ({5})\tLocation {3} ({6})'.format(*t))
+            r = self.storage.CSWAP(*t[1:4])
+            if r:
+                emp += 1
+        print()
 
     def draw(self):
         self.qc.draw(output='mpl')
         plt.show()
+
+    def select(self):
+        self.storage.select()
 
     def simulate(self):
         self.circuit()
@@ -66,6 +79,15 @@ class Storage:
         self.size = len(self.locations)
         self.outsize = data.count('!')
 
+    def CSWAP(self, w, c, e):
+        animatronics = (self.locations[w - 1], self.locations[e - 1])
+        if self.locations[c - 1]:
+            self.locations[w - 1], self.locations[e - 1] = animatronics[::-1]
+            return True
+
+    def get(self, i):
+        return self.locations[i - 1]
+
     def select(self):
         """
            Select optional animatronics.
@@ -75,21 +97,25 @@ class Storage:
             if '(' in a:
                 ans = input(f'Is {a} present? (Y/N) ')
                 if ans.upper() == 'Y':
-                    self.locations[i] = a.strip('()')
+                    self.locations[i] = a.strip('()!')
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(description=ABOUT, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('file', help='source file to process')
+    parser.add_argument('--debug', '-d', help='turn on debug output', action='store_true')
     args = parser.parse_args()
 
+    DEBUG = args.debug
     with open(args.file, 'r') as f:
         storage = Storage(f.readline()) 
         schedule = Schedule(f.readlines(), storage)
 
-    print('Animatronics:', storage.raw)
-    print('Schedule:', schedule.schedule)
-
+    if DEBUG:
+        print('Animatronics:', storage.raw, storage.locations)
+        print('Schedule:', schedule.schedule)
+    schedule.select()
+    schedule.describe()
     schedule.simulate()
     print('Input Animatronics:', schedule.storage.locations)
     schedule.draw()
