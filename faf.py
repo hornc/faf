@@ -15,7 +15,7 @@ SHOTS = 100
 
 class Schedule:
     def __init__(self, data, storage):
-        self.schedule = [night.strip() for night in data if night.strip()]
+        self.schedule = [night.strip() for night in data if night.strip() and night.strip()[0] != '#']
         self.storage = storage
         self.qc = QuantumCircuit(storage.size, storage.outsize)
 
