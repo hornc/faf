@@ -11,7 +11,7 @@ Finites at Fredy's esolang interpreter. (v{version})
 https://esolangs.org/wiki/Finites_at_Fredy%27s
 """
 DEBUG = False
-
+SHOTS = 100
 
 class Schedule:
     def __init__(self, data, storage):
@@ -58,15 +58,16 @@ class Schedule:
         plt.show()
 
     def select(self):
+        print('DEPRECATED: use storage.select() directly.')
         self.storage.select()
 
     def simulate(self):
         self.circuit()
 
         backend = BasicAer.get_backend('qasm_simulator')
-        job = execute(self.qc, backend, shots=10)
+        job = execute(self.qc, backend, shots=SHOTS)
         results = job.result().get_counts(self.qc)
-        print('RESULTS:', results)
+        print('RESULTS (result: count):', results)
         r = list(results.keys())[0]
         print('As Int:', int(r, 2))
         print('As Chr:', chr(int(r, 2)))
@@ -88,15 +89,19 @@ class Storage:
     def get(self, i):
         return self.locations[i - 1]
 
-    def select(self):
+    def select(self, inputs=''):
         """
            Select optional animatronics.
            Prompts for user input.
         """
         for i, a in enumerate(self.raw):
             if '(' in a:
-                ans = input(f'Is {a} present? (Y/N) ')
-                if ans.upper() == 'Y':
+                if not inputs:
+                    ans = input(f'Is {a.strip("!")} present? (y/N) ')
+                else:
+                    ans = inputs[0]
+                    inputs = inputs [1:]
+                if ans.upper() in ('1', 'Y'):
                     self.locations[i] = a.strip('()!')
 
 
@@ -104,6 +109,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=ABOUT, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('file', help='source file to process')
     parser.add_argument('--debug', '-d', help='turn on debug output', action='store_true')
+    parser.add_argument('--circuit', '-c', help='display quantum circuit image', action='store_true')
+    parser.add_argument('--input', '-i', help='input for optional animatronics as a bitstring')
     args = parser.parse_args()
 
     DEBUG = args.debug
@@ -114,9 +121,11 @@ if __name__ == '__main__':
     if DEBUG:
         print('Animatronics:', storage.raw, storage.locations)
         print('Schedule:', schedule.schedule)
-    schedule.select()
-    schedule.describe()
-    schedule.simulate()
+    storage.select(args.input)
     print('Input Animatronics:', schedule.storage.locations)
-    schedule.draw()
+    #schedule.describe()
+    schedule.simulate()
+
+    if args.circuit:
+        schedule.draw()
 
