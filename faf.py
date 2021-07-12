@@ -31,7 +31,8 @@ class Schedule:
         # Add CSWAPs
         for i, shift in enumerate(self.schedule):
             locs = [int(v) - 1 for v in shift.split(',')]
-            print(f'Night {i}: {locs}')
+            if DEBUG:
+                print(f'Night {i + 1}: {locs}')
             self.qc.cswap(locs[1], locs[0], locs[2])
 
         # Add Measurements
@@ -69,8 +70,8 @@ class Schedule:
         results = job.result().get_counts(self.qc)
         print('RESULTS (result: count):', results)
         r = list(results.keys())[0]
-        print('As Int:', int(r, 2))
-        print('As Chr:', chr(int(r, 2)))
+        print('As int:', int(r, 2))
+        print('As chr:', chr(int(r, 2)))
 
 
 class Storage:
