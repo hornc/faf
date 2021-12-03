@@ -43,13 +43,14 @@ class Schedule:
     def describe(self):
         """Describe the shifts as they unfold."""
         emp = 1
-        print('\n\tOn Duty\tWest Coor.\tControl Room\tEast Coor.')
+        print('\nSchedule\tStaff On Duty\tWest Coor.\tControl Room\tEast Coor.\tOutput (masked)')
         for i, shift in enumerate(self.schedule):
             t = [i + 1] + [int(v) for v in shift.split(',')]
             t += [self.storage.get(i) for i in t[1:]]
             t += [emp]
-            print('Night {0}:\tEmployee #{7}\tLocation {1} ({4})\tLocation {2} ({5})\tLocation {3} ({6})'.format(*t))
             r = self.storage.CSWAP(*t[1:4])
+            t += [self.storage]
+            print('Night {0}:\tEmployee #{7}\tLoc. {1} ({4})\tLoc. {2} ({5})\tLoc. {3} ({6})\t{8}'.format(*t))
             if r:
                 emp += 1
         print()
@@ -79,7 +80,8 @@ class Storage:
         self.raw = [v.strip() for v in data.split(',')]
         self.locations = [None if 'EMPTY' in v  or '(' in v else v for v in self.raw]
         self.size = len(self.locations)
-        self.outsize = data.count('!')
+        self.outmask = [i for i, v in enumerate(self.raw) if '!' in str(v)]
+        self.outsize = len(self.outmask)
 
     def CSWAP(self, w, c, e):
         animatronics = (self.locations[w - 1], self.locations[e - 1])
@@ -88,7 +90,24 @@ class Storage:
             return True
 
     def get(self, i):
+        """Get the contents of storage location i."""
         return self.locations[i - 1]
+
+    def bits(self):
+        """Output masked locations (!) as bits."""
+        return ''.join(['1' if v else '0' for i, v in enumerate(self.locations) if i in self.outmask])
+
+    def int(self):
+        """Output masked locations (!) as an integer."""
+        return int(self.bits(), 2)
+
+    def chr(self):
+        """Output masked locations (!) as a character."""
+        return chr(self.int())
+
+    def __repr__(self):
+        return f"{self.bits()}: int: {self.int()} chr: {self.chr()}"
+
 
     def select(self, inputs=''):
         """
@@ -124,7 +143,7 @@ if __name__ == '__main__':
         print('Schedule:', schedule.schedule)
     storage.select(args.input)
     print('Input Animatronics:', schedule.storage.locations)
-    #schedule.describe()
+    schedule.describe()
     schedule.simulate()
 
     if args.circuit:
