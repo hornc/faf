@@ -77,11 +77,17 @@ class Schedule:
 
 class Storage:
     def __init__(self, data):
+        self.input = ''
         self.raw = [v.strip() for v in data.split(',')]
-        self.locations = [None if 'EMPTY' in v  or '(' in v else v for v in self.raw]
+        self.locations = [None if 'EMPTY' in v or '(' in v else v for v in self.raw]
         self.size = len(self.locations)
         self.outmask = [i for i, v in enumerate(self.raw) if '!' in str(v)]
         self.outsize = len(self.outmask)
+
+    def reset(self):
+        """Reset locations to initial state."""
+        self.locations = [None if 'EMPTY' in v or '(' in v else v for v in self.raw]
+        self.select(self.input)
 
     def CSWAP(self, w, c, e):
         animatronics = (self.locations[w - 1], self.locations[e - 1])
@@ -114,13 +120,16 @@ class Storage:
            Select optional animatronics.
            Prompts for user input.
         """
+        if inputs:
+            self.input = inputs
         for i, a in enumerate(self.raw):
             if '(' in a:
                 if not inputs:
                     ans = input(f'Is {a.strip("!")} present? (y/N) ')
+                    self.input += '1' if ans.upper() == 'Y' else '0'
                 else:
                     ans = inputs[0]
-                    inputs = inputs [1:]
+                    inputs = inputs[1:]
                 if ans.upper() in ('1', 'Y'):
                     self.locations[i] = a.strip('()!')
 
@@ -135,15 +144,15 @@ if __name__ == '__main__':
 
     DEBUG = args.debug
     with open(args.file, 'r') as f:
-        storage = Storage(f.readline()) 
+        storage = Storage(f.readline())
         schedule = Schedule(f.readlines(), storage)
-
     if DEBUG:
         print('Animatronics:', storage.raw, storage.locations)
         print('Schedule:', schedule.schedule)
     storage.select(args.input)
     print('Input Animatronics:', schedule.storage.locations)
     schedule.describe()
+    storage.reset()
     schedule.simulate()
 
     if args.circuit:
