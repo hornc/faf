@@ -79,6 +79,7 @@ class Storage:
     def __init__(self, data):
         self.input = ''
         self.raw = [v.strip() for v in data.split(',')]
+        self.insize = data.count('(')
         self.locations = [None if 'EMPTY' in v or '(' in v else v for v in self.raw]
         self.size = len(self.locations)
         self.outmask = [i for i, v in enumerate(self.raw) if '!' in str(v)]
@@ -121,7 +122,7 @@ class Storage:
            Prompts for user input.
         """
         if inputs:
-            self.input = inputs
+            self.input = inputs[-self.insize:]
         for i, a in enumerate(self.raw):
             if '(' in a:
                 if not inputs:
@@ -139,7 +140,8 @@ if __name__ == '__main__':
     parser.add_argument('file', help='source file to process')
     parser.add_argument('--debug', '-d', help='turn on debug output', action='store_true')
     parser.add_argument('--circuit', '-c', help='display quantum circuit image', action='store_true')
-    parser.add_argument('--input', '-i', help='input for optional animatronics as a bitstring')
+    parser.add_argument('--bitstring', '-b', help='input for optional animatronics as a bitstring')
+    parser.add_argument('--input', '-i', help='input for optional animatronics as an integer')
     args = parser.parse_args()
 
     DEBUG = args.debug
@@ -149,7 +151,10 @@ if __name__ == '__main__':
     if DEBUG:
         print('Animatronics:', storage.raw, storage.locations)
         print('Schedule:', schedule.schedule)
-    storage.select(args.input)
+
+    inputbits = args.bitstring or args.input and bin(int(args.input))[2:].rjust(storage.insize, '0')
+
+    storage.select(inputbits)
     print('Input Animatronics:', schedule.storage.locations)
     schedule.describe()
     storage.reset()
